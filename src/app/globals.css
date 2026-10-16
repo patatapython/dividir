@@ -1,0 +1,649 @@
+/* ============================================================
+   dividir — "bloques" design system (spec 2026-07-30)
+   Pop brutalism: flat blocks, thick ink borders, hard shadows,
+   one lime accent that only means "action" or "positive".
+   Layers: 1 tokens · 2 base · 3 primitives · 4 utilities
+   All color pairs measured: docs/design/contrast-pairs.json
+   Hard rules: no border-radius; lime is a filled block, never
+   stroke/text on light surfaces; shadows are rationed (buttons,
+   positive cards, live ticket, stickers — never plain lists).
+   ============================================================ */
+
+/* ===== 1. TOKENS ===== */
+:root {
+  --crema: #fffdf2;
+  --tinta: #131313;
+  --lima: #d6f24a;
+  --arena: #f2efe0;
+  --tinta-60: #3a3a34;
+  --gris-borde: #62625c; /* inactive-tab border on tinta; mock's #4A4A44 measured 2.08:1 and failed */
+  --gris-claro: #a9a9a2;
+  --gris-medio: #6d6d66; /* placeholders: AA on crema/arena but clearly lighter than typed text */
+  --verde-pos: #166f38;  /* owner override 2026-07-30: signed money gets semaphore color (redundant with +/− and ▲/▼) */
+  --rojo-neg: #b91c1c;
+  --divider: rgb(19 19 19 / .3);
+  /* type scale (session 10): 16px is the floor for running text, controls and names;
+     the two smaller steps are the only exceptions and each has one job */
+  --fs-label: 13px; /* mono uppercase micro-labels (section labels, tabs, badges, stamps) */
+  --fs-small: 14px; /* metadata only: times, counts, hints under a field */
+  --fs-body: 16px;
+  --ticket-pad-y: 12px;
+  --ticket-pad-x: 12px;
+  color-scheme: light;
+}
+
+/* ===== 2. BASE / RESET ===== */
+* { box-sizing: border-box; }
+body {
+  background: var(--crema);
+  color: var(--tinta);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  /* names and concepts are typed by people: a word too long for its box breaks
+     instead of pushing the page sideways (session 11, F-07) */
+  overflow-wrap: anywhere;
+}
+h1, h2, h3 { line-height: 1.15; letter-spacing: -0.03em; }
+a { color: var(--tinta); }
+:focus-visible { outline: 3px solid var(--tinta); outline-offset: 2px; }
+.on-dark :focus-visible { outline-color: var(--lima); }
+.mono { font-variant-numeric: tabular-nums; }
+/* read by assistive technology, not drawn */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0;
+}
+input, select, textarea {
+  width: 100%;
+  padding: 9px 11px;
+  min-height: 44px;
+  border: 2.5px solid var(--tinta);
+  border-radius: 0;
+  font: inherit;
+  background: var(--crema);
+  color: var(--tinta);
+}
+input::placeholder { color: var(--gris-medio); }
+input[type='checkbox'], input[type='radio'] {
+  width: 22px; height: 22px; min-height: 0;
+  accent-color: var(--tinta); cursor: pointer;
+}
+
+/* ===== 3. PRIMITIVES ===== */
+.ticket-wrap { margin-bottom: 10px; }
+.ticket {
+  background: var(--crema);
+  border: 2.5px solid var(--tinta);
+  padding: var(--ticket-pad-y) var(--ticket-pad-x);
+  border-radius: 0;
+  position: relative;
+}
+/* shadow is RATIONED: only featured/positive/interactive cards opt in */
+.ticket--featured { border-width: 3px; }
+.ticket--shadow { box-shadow: 4px 4px 0 var(--tinta); }
+.ticket--lima-shadow { box-shadow: 6px 6px 0 var(--lima); } /* live ticket only; legal against its 3px tinta border */
+
+/* state sticker/badge. Default = inline badge (tinta block, lime text).
+   --sticker = rotated corner sticker (lime block, hard shadow); --arena = informative close, no shadow */
+.stamp {
+  display: inline-block;
+  background: var(--tinta);
+  color: var(--lima);
+  border: none;
+  border-radius: 0;
+  font-family: var(--font-mono), monospace;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-size: var(--fs-label);
+  padding: 5px 8px;
+}
+.stamp--display { font-size: var(--fs-body); padding: 8px 14px; }
+.stamp--sticker {
+  background: var(--lima);
+  color: var(--tinta);
+  border: 2.5px solid var(--tinta);
+  box-shadow: 3px 3px 0 var(--tinta);
+  font-family: var(--font-sans), sans-serif;
+  font-size: var(--fs-label);
+  letter-spacing: .10em;
+  rotate: -8deg;
+}
+.stamp--arena { background: var(--arena); box-shadow: none; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes stamp-in { from { scale: 1.6; opacity: 0; } 60% { scale: .94; opacity: 1; } to { scale: 1; } }
+  .stamp--animated { animation: stamp-in .35s ease-out; }
+}
+@media (prefers-reduced-motion: reduce) { .stamp--sticker { rotate: none; } }
+
+.chip {
+  border-radius: 0;
+  padding: 9px 12px; min-height: 44px;
+  font-size: var(--fs-body); font-weight: 700; font-family: inherit;
+  border: 2px solid var(--tinta);
+  background: var(--tinta); color: var(--crema);
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.chip--off { background: var(--crema); color: var(--tinta); }
+.chip--off:hover { background: var(--arena); }
+/* the Sobrante chip (ownerless payer): dashed = money from before, keeps the dark selected fill */
+.chip--nadie { border-style: dashed; }
+.chip:not(.chip--off):not(.chip--add).chip--nadie { outline: 2px dashed var(--crema); outline-offset: -5px; }
+.chip--add { background: transparent; color: var(--tinta); border: 2px dashed var(--tinta); }
+
+.btn {
+  display: inline-block; text-align: center; text-decoration: none;
+  border: 2.5px solid var(--tinta); border-radius: 0;
+  padding: 13px 15px; min-height: 48px;
+  font: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+  background: var(--crema); color: var(--tinta);
+  transition: translate 150ms ease-out, box-shadow 150ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+.btn:disabled {
+  cursor: not-allowed;
+  background: var(--arena); color: var(--tinta-60); border-color: var(--tinta-60);
+  box-shadow: none; translate: none;
+}
+/* primary = lime block riding a hard shadow; hover/active sink into it */
+.btn--primary { background: var(--lima); box-shadow: 4px 4px 0 var(--tinta); }
+.btn--primary:hover:not(:disabled) { translate: 2px 2px; box-shadow: 2px 2px 0 var(--tinta); }
+.btn--primary:active:not(:disabled) { translate: 4px 4px; box-shadow: none; }
+@media (prefers-reduced-motion: reduce) { .btn--primary:hover:not(:disabled), .btn--primary:active:not(:disabled) { translate: none; } }
+/* inverse: tinta block, lime text (header, danger zone, REPARTIR) */
+.btn--dark { background: var(--tinta); color: var(--lima); }
+.btn--dark:hover:not(:disabled) { color: var(--crema); }
+/* secondary: crema + border, no shadow */
+.btn--ghost { background: var(--crema); color: var(--tinta); }
+.btn--ghost:hover:not(:disabled) { background: var(--arena); }
+/* danger: outline button; on inverted (dark) panels the outline flips to crema */
+.btn--danger { background: transparent; color: var(--tinta); }
+.btn--danger:hover:not(:disabled) { background: var(--arena); }
+.on-dark .btn--danger { color: var(--crema); border-color: var(--crema); }
+.on-dark .btn--danger:hover:not(:disabled) { background: var(--tinta-60); }
+.btn--sm { padding: 9px 12px; min-height: 44px; font-size: var(--fs-body); }
+
+.section-label {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--tinta); font-weight: 700; line-height: 1.5;
+  margin: 16px 0 8px;
+}
+.section-label:first-child { margin-top: 0; }
+
+.leader-row { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 0; padding: 4px 0; font-size: var(--fs-body); font-weight: 700; min-height: 0; }
+.leader-label { min-width: 0; overflow-wrap: anywhere; }
+/* a wrapped line (value and/or actions) packs to the right: the dotted leader fills the first one */
+.leader-actions { display: inline-flex; align-items: baseline; gap: 8px; padding-left: 8px; }
+.leader {
+  flex: 1; min-width: 16px;
+  border-bottom: 2px dotted var(--divider);
+  margin: 0 8px;
+  align-self: baseline; /* dots on the text baseline, even beside taller buttons */
+}
+
+/* A row with actions: one shape per list. The row is its own size container, so
+   its width (the list's, the same for every row) decides where the actions go —
+   below the amount when narrow, beside it when wide — and a long label wraps in
+   its own column instead of pushing anything to another line. */
+.leader-row--actions {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: fit-content(60%) minmax(16px, 1fr) auto auto;
+  align-items: baseline;
+}
+.leader-row--actions .leader-actions { grid-column: 1 / -1; justify-self: end; padding-left: 0; margin-top: 8px; }
+@container (min-width: 480px) {
+  .leader-row--actions .leader-actions { grid-column: auto; padding-left: 8px; margin-top: 0; }
+}
+
+/* the save/cancel buttons of a row's inline edit panel (bote rows) */
+.row-edit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+/* a bote round's "Renombrar" and its field, right under the round's name (T-100) */
+.round-name-actions { margin: 0 0 10px; }
+.round-name-edit { margin: 4px 0 12px; }
+
+/* money: sign is carried by the +/− glyph in the text; color is a REDUNDANT
+   channel on top (owner override of spec §3.1, 2026-07-30) — never the only one.
+   Zero renders plain tinta. On lime/dark fills the number stays tinta/crema. */
+/* an amount is one unit: its figure and its € never split across lines */
+.money { font-variant-numeric: tabular-nums; font-weight: 700; letter-spacing: -0.03em; white-space: nowrap; }
+.money--pos { color: var(--verde-pos); }
+.money--neg { color: var(--rojo-neg); }
+.balance-card--pos .money, .panel--danger .money { color: inherit; }
+:is(.movement-row, .participant-row, .leader-row) .money { font-size: 20px; }
+.journal-row .money { font-size: var(--fs-body); }
+
+.skeleton { background: var(--arena); border: 2px solid var(--divider); border-radius: 0; }
+.skeleton-screen { display: flex; flex-direction: column; gap: 12px; padding: 16px 0 32px; }
+.skeleton-screen .balance-grid { margin-bottom: 0; }
+.skeleton-actions { display: flex; gap: 8px; }
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes skeleton-pulse { 50% { opacity: .5; } }
+  .skeleton { animation: skeleton-pulse 1.4s ease-in-out infinite; }
+}
+
+/* form field — preserves the <label><span>text</span><input/></label> association E2E selects by */
+.field { margin-bottom: 12px; }
+.field > label { display: block; }
+.field > label > span {
+  display: block;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--tinta);
+  margin-bottom: 6px;
+}
+/* the protagonist amount field: lime block (legal: tinta text on lime, 14.7:1) */
+/* crema like every input: lime means action, positive or selected (Bloques spec §3.1, T-37) */
+.field--amount input { border-width: 3px; font-size: 26px; font-weight: 700; }
+/* a per-person amount: the name on the left, the amount on the right, the verdict beneath */
+.field--inline { margin-bottom: 4px; }
+.field--inline > label {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 44px;
+}
+.field--inline > label > span {
+  margin: 0; font-family: inherit; font-size: var(--fs-body); letter-spacing: 0; text-transform: none;
+}
+.field--inline input { max-width: 7rem; }
+.field--inline .error { text-align: right; }
+.error { color: var(--tinta); font-weight: 700; font-size: var(--fs-body); margin: 4px 0 0; }
+.error::before { content: "✗ "; }
+
+/* dialog shell */
+.dialog {
+  background: var(--crema);
+  color: var(--tinta);
+  border: 3px solid var(--tinta);
+  border-radius: 0;
+  padding: 0;
+  width: calc(100% - 32px);
+  max-width: 420px;
+  box-shadow: 6px 6px 0 var(--tinta);
+}
+.dialog::backdrop { background: rgb(19 19 19 / .5); }
+.dialog-body { padding: 20px 18px 18px; }
+.dialog h2 { margin-top: 0; }
+.dialog-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+.empty-state {
+  text-align: center; color: var(--tinta-60); padding: 32px 16px;
+  border: 2px dashed var(--tinta); border-radius: 0;
+}
+
+/* pixel-art figures (session 10): decorative, integer-scaled, never blurred */
+.pixel-art { display: block; flex: none; }
+.empty-state-art { margin: 0 auto 12px; }
+.settled-art { display: flex; justify-content: center; align-items: flex-end; gap: 6px; margin-bottom: 12px; } /* a toast */
+.lost-art { float: right; margin: 0 0 8px 12px; }
+.landing-art { float: right; margin: 4px 0 8px 12px; width: 106px; height: auto; } /* 2 px per art pixel */
+@media (min-width: 400px) { .landing-art { width: 159px; } } /* 3 px, as every other figure */
+
+/* app shell — the tinta header block: badge + group links, title, and the
+   REPARTO | BOTE mode switch flush with its bottom edge (D-01/D-02) */
+.appbar { background: var(--tinta); color: var(--crema); border-bottom: none; }
+.appbar-inner { max-width: 640px; margin-inline: auto; padding: 18px 16px 16px; }
+.appbar h1 {
+  font-size: 30px; font-weight: 700; letter-spacing: -0.03em;
+  color: var(--crema); margin: 0;
+  overflow-wrap: anywhere;
+}
+.appbar-title {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 8px 12px; flex-wrap: wrap; margin: 12px 0 16px;
+}
+.appbar-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.appbar-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.on-dark .muted { color: var(--gris-claro); }
+.on-dark .btn--ghost { background: transparent; color: var(--crema); border-color: var(--crema); }
+.on-dark .btn--ghost:hover:not(:disabled) { background: var(--tinta-60); }
+/* tag badge (the landing's "Sin cuentas"): a tinta block, lime as tinta's accent.
+   On light, a lime FILL only means action, positive or selected (Bloques §3.1). */
+.badge {
+  display: inline-block;
+  background: var(--tinta); color: var(--lima);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase;
+  padding: 5px 7px;
+}
+.appbar-links { display: flex; gap: 6px; }
+.tab {
+  padding: 10px 11px; min-height: 44px; display: inline-flex; align-items: center;
+  border-radius: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: .10em; text-transform: uppercase;
+  text-decoration: none; color: var(--crema);
+  background: transparent; border: 2px solid var(--gris-borde);
+}
+.tab:hover { border-color: var(--gris-claro); }
+.tab--on { background: var(--lima); color: var(--tinta); border-color: var(--crema); }
+.mode-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: -16px; }
+.mode-tab {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 52px; padding: 0 12px;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-body); font-weight: 700; letter-spacing: .10em; text-transform: uppercase;
+  text-decoration: none; color: var(--crema);
+  border: 3px solid var(--gris-borde); border-bottom: 0;
+}
+.mode-tab:hover { border-color: var(--gris-claro); }
+.mode-tab--on, .mode-tab--on:hover { background: var(--lima); color: var(--tinta); border-color: var(--lima); }
+
+/* the mode's views, its fixed intro and the bote's own surface (D-01) */
+.mode-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 12px; }
+.subviews { display: flex; gap: 6px; }
+.subview {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  text-decoration: none; color: var(--tinta);
+  border: 2px solid var(--tinta); background: var(--crema);
+}
+.subview:hover { background: var(--arena); }
+.subview--on, .subview--on:hover { background: var(--tinta); color: var(--crema); }
+.mode-tag {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  border: 1.5px solid var(--tinta); padding: 4px 8px;
+}
+.mode-intro { margin: 8px 0 0; font-size: var(--fs-body); color: var(--tinta-60); max-width: 65ch; }
+/* the bote's content sits on arena, its cards and forms on crema */
+body:has(.mode-surface--bote), .mode-surface--bote { background: var(--arena); }
+.mode-surface--bote .panel--arena { background: var(--crema); }
+.mode-surface--bote .subview:hover:not(.subview--on),
+.mode-surface--bote .btn-dashed:hover { background: var(--crema); }
+
+/* bottom action bar for screens with a primary action */
+.action-bar { display: flex; gap: 8px; padding: 12px 0 16px; position: sticky; bottom: 0; background: var(--crema); z-index: 5; }
+.action-bar .btn { white-space: nowrap; }
+
+/* ===== 4. UTILITIES ===== */
+.container { max-width: 640px; margin-inline: auto; padding: 0 16px; }
+
+/* expense form: screen title + one bordered card per line (multi-item mode) */
+.screen-title { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; margin: 0 0 10px; }
+.item-card { border: 2px solid var(--tinta); margin-bottom: 8px; }
+.item-card--open { border-width: 2.5px; }
+.item-card-head {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px;
+  background: var(--arena); border: none; padding: 9px 11px;
+  font: inherit; font-size: var(--fs-body); font-weight: 700; text-align: left; cursor: pointer; color: inherit;
+}
+.item-card--open > .item-card-head { background: var(--lima); }
+/* explicit open/closed affordance, redundant with aria-expanded */
+.item-card-head::before { content: '▸'; flex-shrink: 0; }
+.item-card-head[aria-expanded='true']::before { content: '▾'; }
+.item-card-head .item-card-amount { margin-left: auto; font-weight: 700; }
+.item-summary { font-size: var(--fs-small); margin: 0; padding: 8px 11px; color: var(--tinta-60); }
+.item-body { padding: 10px 11px 12px; border-top: 2px solid var(--tinta); }
+/* dashed block action: opt-in, provisional (trocear / añadir línea) */
+.btn-dashed {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: 2px dashed var(--tinta); border-radius: 0;
+  padding: 11px 12px; min-height: 44px;
+  font: inherit; font-size: var(--fs-body); font-weight: 700; cursor: pointer; color: var(--tinta);
+}
+.btn-dashed:hover { background: var(--arena); }
+.btn-dashed .muted { display: block; font-weight: 400; margin-top: 2px; }
+/* a form's exits: save first, cancel beside it; delete lives apart, in .delete-zone */
+.form-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+/* the end of an entity's page: a ruled-off place to delete it, never next to save */
+.delete-zone { margin-top: 32px; padding-top: 16px; border-top: 2px dashed var(--divider); }
+/* "¿Ya lo ha pagado alguien?" on an unpaid charge: its own panel, between the form and the delete zone */
+.pay-charge { margin-top: 24px; }
+.pay-charge .payer-row { margin: 12px 0; }
+.pay-charge-action { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mode-fieldset { border: none; border-radius: 0; padding: 0; margin: 12px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+/* the participants a line is split between: a titled group, not loose checkboxes */
+.shares { border: none; border-radius: 0; padding: 0; margin: 12px 0 0; min-inline-size: 0; }
+.mode-fieldset legend, .shares > legend {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--tinta); padding: 0; margin-bottom: 6px;
+}
+.mode-option {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-body); font-weight: 700;
+  border: 2px solid var(--tinta); border-radius: 0;
+  padding: 9px 12px; min-height: 44px; cursor: pointer;
+  background: var(--crema);
+}
+.mode-option:hover { background: var(--arena); }
+/* selected split mode = lime block (lime only ever appears as fill) */
+.mode-option:has(input:checked) { background: var(--lima); }
+.mode-option input { width: 18px; height: 18px; min-height: 0; }
+/* name | value on every row (session 12): a long name wraps inside its own column and the
+   values of one list stay in one column, instead of the value dropping under a long name */
+.share-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 8px; padding: 4px 0; min-height: 44px; font-size: var(--fs-body); font-weight: 700; }
+.share-row label { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.share-row input[type='checkbox'] { width: 22px; height: 22px; flex: none; }
+.payer-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.payer-cell { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* a row's typed value with its unit beside it (instead of a sample placeholder) */
+.row-input { display: inline-flex; align-items: center; gap: 6px; }
+.row-input input { max-width: 7rem; }
+.row-unit { font-size: var(--fs-body); font-weight: 700; }
+/* a row's error takes a line of its own, right under the value it judges */
+.share-row .error { grid-column: 1 / -1; text-align: right; margin: 0; }
+.payer-cell .error { flex-basis: 100%; margin: 0; }
+/* several payers is a mode (T-47): how it works, and the way back to one payer */
+.payer-mode { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+/* a chip that is a radio: a transparent input covers the chip (every tap lands on it), so the
+   chip carries the focus ring */
+.chip--radio { position: relative; }
+.chip--radio > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.chip--radio:has(> input:focus-visible) { outline: 3px solid var(--tinta); outline-offset: 2px; }
+/* a payer's note (what is left of the declared Sobrante) on its own line under the chip */
+.payer-hint { flex-basis: 100%; color: var(--tinta-60); font-size: var(--fs-small); }
+/* why "Guardar" is disabled: help beside the button, not an alarm */
+.save-blockers { margin-top: 14px; font-size: var(--fs-body); color: var(--tinta); }
+.save-blockers p { margin: 0 0 4px; font-weight: 700; }
+.save-blockers ul { margin: 0; padding-left: 18px; }
+
+/* activity journal (spec §5.5): day label blocks + left-bar entries.
+   Bar = solid tinta for money movements, hollow tinta for group life (T-77: lime
+   only means action, positive or selected, and a kind of entry is none of them).
+   The outline is an inset shadow so both bars keep one width and the columns align.
+   The bar is redundant with the text — never the only signal. */
+.journal-day { border-top: none; margin-bottom: 16px; }
+.day-label {
+  display: inline-block;
+  background: var(--tinta); color: var(--crema);
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  padding: 6px 8px; margin: 0 0 8px;
+  line-height: 1.5;
+}
+.day-label--old { background: var(--arena); color: var(--tinta); border: 2px solid var(--tinta); padding: 4px 8px; }
+.journal-row { display: flex; gap: 11px; align-items: baseline; margin: 6px 0; padding: 0; font-size: var(--fs-body); font-weight: 500; }
+.journal-row::before { content: ''; align-self: stretch; width: 6px; flex-shrink: 0; background: var(--tinta); }
+.journal-row--life::before { background: transparent; box-shadow: inset 0 0 0 2px var(--tinta); }
+.journal-time { color: var(--tinta-60); font-size: var(--fs-small); min-width: 3.5em; font-variant-numeric: tabular-nums; }
+/* T-44: what + detail line on the left, the amount pinned right on the first line. */
+.journal-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.journal-detail { font-size: var(--fs-small); color: var(--tinta-60); }
+.journal-row .money { margin-left: auto; padding-left: 8px; white-space: nowrap; }
+
+/* landing: one column at every width (D-06), in DOM order: headline with the pilgrim
+   beside it, "Tus grupos" for returning people, how it works, the form, the sample */
+.landing { padding-top: 24px; padding-bottom: 32px; display: grid; gap: 28px; }
+.landing > * { margin: 0; }
+.landing h1 {
+  font-size: 2.5rem; font-weight: 700; color: var(--tinta);
+  letter-spacing: -0.04em; margin: 8px 0;
+}
+.landing-how > h2, .landing-form > h2 { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; margin: 0 0 16px; }
+.landing-sub { color: var(--tinta-60); max-width: 34ch; }
+.landing-total { border-top: 2px dashed var(--divider); margin-top: 8px; padding-top: 8px; }
+.landing-form .muted { margin: 16px 0 0; }
+.how-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+.how-step { display: flex; gap: 12px; align-items: flex-start; }
+.how-number {
+  flex: none; display: grid; place-items: center;
+  width: 44px; height: 44px;
+  background: var(--tinta); color: var(--crema);
+  font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums;
+}
+.how-step h3 { font-size: 20px; font-weight: 700; margin: 0 0 4px; line-height: 1.2; }
+.how-step p { margin: 0; color: var(--tinta-60); }
+/* a participant name with its remove button beside the input (the label stays above both) */
+.participant-input { display: flex; align-items: flex-end; gap: 8px; }
+.participant-input > .field { flex: 1; min-width: 0; }
+.participant-input > .btn { margin-bottom: 12px; }
+
+.muted { color: var(--tinta-60); font-size: var(--fs-body); }
+.panel {
+  background: var(--crema);
+  border: 2.5px solid var(--tinta);
+  border-radius: 0;
+  padding: var(--ticket-pad-y) var(--ticket-pad-x);
+  margin-bottom: 10px;
+}
+/* danger zone = inverted block (tinta card, crema text, lime label) */
+.panel--danger { background: var(--tinta); color: var(--crema); border: 3px solid var(--tinta); }
+.panel--danger :focus-visible { outline-color: var(--lima); }
+.panel--danger .muted { color: var(--gris-claro); }
+.panel--danger .section-label { color: var(--lima); }
+.panel--danger .error { color: var(--crema); }
+.panel--danger .field > label > span { color: var(--crema); }
+
+/* participants */
+.participant-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--divider); flex-wrap: wrap; }
+.participant-row > span:first-child { font-size: var(--fs-body); font-weight: 700; }
+.participant-row:last-child { border-bottom: none; }
+
+.movement-row { padding: 8px 0; border-bottom: 1px dashed var(--divider); }
+.movement-row:first-child { padding-top: 0; }
+.movement-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+/* ---- home: balance grid (spec §5.1) ---- */
+.balance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+.balance-card { border: 2.5px solid var(--tinta); padding: 10px 11px; background: var(--crema); container-type: inline-size; }
+.balance-card--pos { background: var(--lima); box-shadow: 4px 4px 0 var(--tinta); }
+.balance-card-top { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+.balance-card-top strong { font-size: var(--fs-body); }
+/* a saldo card's amount at 23px when it fits the card (container query), otherwise
+   exactly as large as fits — never under the 16px floor. 0.54em is the widest
+   character of this face, measured (session 11, F-08). */
+.balance-card .money {
+  --fs-amount-card: clamp(16px, calc(100cqi / (var(--amount-chars, 10) * 0.54)), 23px);
+  font-size: var(--fs-amount-card);
+}
+/* sign badge: glyph + label + fill carry the sign, never color alone */
+.sign-badge {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: .10em; text-transform: uppercase;
+  border: 1.5px solid var(--tinta); padding: 2px 5px; white-space: nowrap;
+}
+.sign-badge--pos { background: var(--tinta); color: var(--lima); border-color: var(--tinta); }
+
+/* balances screen: full-width balance rows */
+.balance-card--row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 7px; }
+.balance-card--row .money { font-size: 24px; }
+.balance-card--row { flex-wrap: wrap; }
+/* a person's final account while charges are unpaid: their share outside + what they still put in */
+.final-account { flex-basis: 100%; margin: 8px 0 0; padding-top: 6px; border-top: 1.5px dashed currentColor; }
+.final-account > div { display: flex; justify-content: space-between; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; }
+.final-account dt { font-size: var(--fs-body); }
+.final-account dd { margin: 0; }
+.final-account .money { font-size: var(--fs-body); }
+.final-account-total { font-weight: 700; }
+/* unpaid charges: a light card (red on tinta measured 2.87:1) with a dashed edge, "pending" in this system */
+.ticket--pending { border-style: dashed; }
+.charge-note { margin: 0 0 8px; }
+.charge-shares { margin: 4px 0 0; }
+.charge-shares .money { font-size: var(--fs-body); }
+.balance-name { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.balance-name strong { font-size: 16px; }
+
+/* ---- home: movement cards ---- */
+.movement-card { border: 2.5px solid var(--tinta); background: var(--crema); padding: 10px 12px; margin-bottom: 8px; }
+.movement-card--payment { background: var(--arena); border-style: dashed; }
+.movement-card .money { font-size: 20px; }
+/* "Ver más" under a paged list (T-71): count on the left, action on the right, wraps at 320. */
+.show-more { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 12px 0 16px; }
+.show-more-count { margin: 0; font-size: var(--fs-small); color: var(--tinta-60); }
+/* a long read list folded to its first rows (D-09): the toggle under the list */
+.fold-toggle { margin: 8px 0 14px; }
+.fold-arrow { margin-right: 8px; }
+/* a solid grey block, full width under its list: a control that belongs to the list,
+   never lime (action/positive) nor money colours — contrast pairs in docs/design */
+.fold-toggle-button { display: block; width: 100%; background: var(--gris-borde); color: var(--crema); }
+.fold-toggle-button:hover { background: var(--tinta-60); }
+
+.leftover-line {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  min-height: 44px; margin: 4px 0 12px; padding: 8px 12px;
+  border: 2px solid var(--tinta); background: var(--crema); color: var(--tinta);
+  font-size: var(--fs-body); text-decoration: none;
+}
+.leftover-line:hover { background: var(--arena); }
+/* share page (T-40): the link, its actions and a QR to scan from another phone */
+.share-panel { display: flex; flex-direction: column; gap: 10px; }
+.share-panel .section-label, .share-panel p { margin: 0; }
+.share-url { width: 100%; }
+.share-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.share-notice { min-height: 1.4em; font-size: var(--fs-body); font-weight: 700; }
+.share-qr { margin: 4px 0 0; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.share-qr svg, .share-qr-placeholder { width: min(220px, 70vw); aspect-ratio: 1; border: 2px solid var(--tinta); }
+.share-qr-light { fill: var(--crema); }
+.share-qr-dark { fill: var(--tinta); }
+/* landing "Tus grupos" (T-41): the groups this device has visited */
+.recent-groups ul { list-style: none; margin: 8px 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.recent-group {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  min-height: 44px; padding: 8px 12px;
+  border: 2px solid var(--tinta); background: var(--crema); color: var(--tinta);
+  font-size: var(--fs-body); font-weight: 700; text-decoration: none;
+}
+.recent-group:hover { background: var(--arena); }
+.recent-group span:first-child { overflow-wrap: anywhere; }
+.movement-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.movement-head a { text-decoration: none; }
+.movement-head a:hover { text-decoration: underline; }
+.movement-meta {
+  display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); text-transform: uppercase; letter-spacing: .06em;
+  color: var(--tinta-60);
+}
+
+/* ---- bote (spec §5.4) ---- */
+.card-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 0 8px; }
+.card-head > * { white-space: nowrap; } /* each side wraps as a whole, never mid-phrase */
+.card-head .section-label { margin: 0 0 8px; }
+.card-head-meta {
+  font-family: var(--font-mono), monospace;
+  font-size: var(--fs-label); font-weight: 700; letter-spacing: .10em; text-transform: uppercase;
+  color: var(--tinta-60);
+}
+.panel--arena { background: var(--arena); }
+/* quick-fill: lime block inside the add-contributions card */
+/* quick-fill: a helper, not the form's action — the submit is (one lime action per form, T-81) */
+.quickfill { background: var(--crema); border: 2px solid var(--tinta); padding: 10px; margin-bottom: 10px; }
+.quickfill .field { margin-bottom: 0; }
+/* closed round: featured card with the corner sticker (signature element).
+   The sticker is a status label, never a control: it must not sit over
+   anything clickable (title clears it via padding) and never eats taps. */
+.closed-round { overflow: hidden; }
+.closed-round > .stamp--sticker { position: absolute; top: 16px; right: -8px; z-index: 1; pointer-events: none; }
+.closed-round--cerrada { background: var(--arena); }
+.closed-round-title { padding-right: 120px; margin: 0 0 6px; min-height: 48px; } /* clears the corner sticker's height, so it never covers the first row */
+.closed-round-title { font-size: 18px; font-weight: 700; line-height: 1.5; letter-spacing: normal; }
+
+.close-round-button { margin-top: 14px; }
+/* archived: arena + dashed = out of new splits, history preserved.
+   Dimmed via measured --tinta-60 token, never opacity over text */
+.participant-archived {
+  color: var(--tinta-60);
+  background: var(--arena);
+  border: 1.5px dashed var(--tinta-60);
+  padding: 8px;
+  margin: 4px 0;
+}
+.participant-archived > span:first-child { text-decoration: line-through; }

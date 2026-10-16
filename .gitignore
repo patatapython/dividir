@@ -1,0 +1,17 @@
+node_modules/
+.next/
+.next-e2e/
+src/generated/
+# Local env files; only the documented example is tracked.
+.env*
+!.env.example
+*.tsbuildinfo
+next-env.d.ts
+coverage/
+playwright-report/
+test-results/
+
+# A private roster for the scale simulation (tests/sim/roster.ts), never committed
+tests/sim/roster.local.json
+tests/sim/.out/
+tests/showcase/.out/

@@ -1,0 +1,48 @@
+# Traefik dynamic configuration for dividir: HTTPS only, HSTS, and no access logs.
+# Source of truth: this file, installed in the proxy's dynamic configuration folder.
+#
+# Every name carries the `dividir-` prefix: all files in that folder merge into one
+# configuration, shared with other apps.
+#
+# Access logs: Traefik only writes them when the static configuration enables them
+# (`--accesslog`), and Coolify's proxy does not, so `/g/<token>` URLs — the
+# credential — are never logged by the proxy. Re-check this if the proxy's command
+# line ever changes.
+http:
+  routers:
+    dividir:
+      rule: "Host(`dividir.pollolist.app`)"
+      entryPoints:
+        - https
+      middlewares:
+        - dividir-hsts
+      service: dividir
+      tls:
+        certResolver: letsencrypt
+
+    # Plain HTTP only ever redirects: the app is HTTPS-only.
+    dividir-http:
+      rule: "Host(`dividir.pollolist.app`)"
+      entryPoints:
+        - http
+      middlewares:
+        - dividir-redirect-https
+      service: dividir
+
+  middlewares:
+    dividir-redirect-https:
+      redirectScheme:
+        scheme: https
+        permanent: true
+
+    # Two years. No preload: that is a commitment for the whole pollolist.app
+    # domain, which is not this app's to make.
+    dividir-hsts:
+      headers:
+        stsSeconds: 63072000
+
+  services:
+    dividir:
+      loadBalancer:
+        servers:
+          - url: "http://dividir-app:3000"

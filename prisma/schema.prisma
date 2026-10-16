@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum SplitMode {
+  EQUAL
+  EXACT
+  PERCENTAGE
+  SHARES
+  ADJUSTMENT
+}
+
+model Group {
+  id           String        @id // nanoid(24), generated in server code — NEVER cuid (spec §2.1)
+  name         String
+  currency     String        @default("EUR") // forward-compatible; v1 server enforces EUR
+  // Declared "dinero extra de nadie" pool (Forma 1 helper). The remaining amount
+  // is DERIVED (this − what nobody already paid across expenses), never a stored
+  // mutable balance, so editing/deleting an expense re-settles it automatically.
+  ownerlessExtraCents Int     @default(0)
+  createdAt    DateTime      @default(now())
+  participants Participant[]
+  expenses     Expense[]
+  payments     Payment[]
+  refunds      Refund[]
+  activity     ActivityLog[]
+  kitty        Kitty?
+  kittyRounds  KittyRound[]
+  groupCharges GroupCharge[]
+}
+
+model Participant {
+  id              String         @id @default(cuid())
+  groupId         String
+  name            String
+  archivedAt      DateTime? // v1.1: archived participants excluded from new expenses, balances stay alive
+  claimedAt       DateTime? // powers the §4.8 "already claimed" hint
+  createdAt       DateTime       @default(now())
+  group           Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  expensePayers   ExpensePayer[]
+  shares          ExpenseShare[]
+  paymentsFrom    Payment[]      @relation("PaymentFrom")
+  paymentsTo      Payment[]      @relation("PaymentTo")
+  refundsReceived Refund[]       @relation("RefundReceiver")
+  kittyContributions KittyContribution[] @relation("KittyContributions")
+  groupChargeShares  GroupChargeShare[]  @relation("GroupChargeShares")
+
+  @@unique([groupId, name])
+}
+
+model Expense {
+  id          String         @id @default(cuid())
+  groupId     String
+  title       String
+  amountCents Int
+  date        DateTime       @db.Date // user-picked calendar date; never timezone-converted
+  splitMode   SplitMode // primary mode (single-item expenses); per-item mode lives on ExpenseItem
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  group       Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  payers      ExpensePayer[]
+  items       ExpenseItem[]
+  refunds     Refund[]
+
+  @@index([groupId])
+}
+
+// v1.1 D1: every expense has >=1 item (flat = 1 implicit item). Uniform
+// computeShares call site; item totals sum = expense total (one invariant).
+model ExpenseItem {
+  id          String         @id @default(cuid())
+  expenseId   String
+  label       String? // optional line-item description (e.g. "Cervezas", "Entrante")
+  amountCents Int
+  splitMode   SplitMode // per-item split mode (may differ across items in multi-item expenses)
+  createdAt   DateTime       @default(now())
+  expense     Expense        @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  shares      ExpenseShare[]
+
+  @@index([expenseId])
+}
+
+model ExpenseShare {
+  itemId        String
+  participantId String
+  shareInput    Int // what the user typed: weight | hundredths of % | exact cents | delta cents | 1
+  amountCents   Int // computed by allocate(); SUM over an item === item.amountCents
+  item          ExpenseItem  @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  participant   Participant  @relation(fields: [participantId], references: [id], onDelete: Restrict)
+
+  @@id([itemId, participantId])
+  @@index([participantId])
+}
+
+// v1.1 D3: multi-payer via join table (relational, queryable, scope-filterable).
+// Ownerless money (spec §7.1): participantId is nullable — null = "dinero de
+// nadie" (an ownerless payer, folded onto people in settle by filterSettleable).
+// Own id PK because a nullable column can't be part of a composite PK; the
+// server recreates all payer rows per edit (deleteMany + create), so there is no
+// upsert-by-key. @@unique keeps a real participant from paying twice on one
+// expense (Postgres allows many NULLs, so several "de nadie" rows are possible;
+// the server collapses them into one — the domain sums them either way).
+model ExpensePayer {
+  id            String       @id @default(cuid())
+  expenseId     String
+  participantId String?
+  amountCents   Int // per-payer contribution; SUM over an expense === Expense.amountCents
+  expense       Expense      @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  participant   Participant? @relation(fields: [participantId], references: [id], onDelete: Restrict)
+
+  @@unique([expenseId, participantId])
+  @@index([participantId])
+}
+
+model Payment {
+  id          String      @id @default(cuid())
+  groupId     String
+  fromId      String
+  toId        String
+  amountCents Int
+  date        DateTime    @db.Date
+  createdAt   DateTime    @default(now())
+  group       Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  from        Participant @relation("PaymentFrom", fields: [fromId], references: [id], onDelete: Restrict)
+  to          Participant @relation("PaymentTo", fields: [toId], references: [id], onDelete: Restrict)
+
+  @@index([groupId])
+  @@index([fromId])
+  @@index([toId])
+}
+
+// v1.1 D4: Refund mirrors the original expense shares (not a Payment).
+// receivedById -= amount; each original beneficiary += mirroredShare. Sum 0.
+// Cumulative cap (sum(refunds) <= expense.total) enforced server-side (D4).
+model Refund {
+  id             String      @id @default(cuid())
+  groupId        String
+  expenseId      String
+  receivedById   String // who received the cash from the merchant (default = expense payer)
+  amountCents    Int // positive; cumulative cap enforced in server action
+  sharesSnapshot Json // v1.1 D-fix-5: [{participantId, amountCents}] mirrored shares,
+  // computed ONCE at creation and frozen — later expense edits never rewrite
+  // who a past refund credits.
+  createdAt      DateTime    @default(now())
+  group          Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  expense        Expense     @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  receivedBy     Participant @relation("RefundReceiver", fields: [receivedById], references: [id], onDelete: Restrict)
+
+  @@index([groupId])
+  @@index([expenseId])
+  @@index([receivedById])
+}
+
+// Model A (spec §3, §7.2): an unpaid group charge — amount + concept split across
+// participants, with NO payer. Each share is external debt owed to an OUTSIDE
+// creditor (the landlord), surfaced as "Cargos del grupo por pagar". It NEVER
+// enters computeBalances/settle() — modelling it as "the bote paid it" would
+// invent money that does not exist and make the debt vanish (§3 proof).
+model GroupCharge {
+  id          String             @id @default(cuid())
+  groupId     String
+  concept     String
+  amountCents Int
+  date        DateTime           @db.Date // user-picked calendar date; never timezone-converted
+  splitMode   SplitMode // split across participants (equal or weighted); reuses computeShares
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  group       Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  shares      GroupChargeShare[]
+
+  @@index([groupId])
+}
+
+model GroupChargeShare {
+  chargeId      String
+  participantId String
+  shareInput    Int // what the user typed: weight | hundredths of % | exact cents | delta cents | 1
+  amountCents   Int // computed by allocate(); SUM over a charge === GroupCharge.amountCents
+  charge        GroupCharge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+  participant   Participant @relation("GroupChargeShares", fields: [participantId], references: [id], onDelete: Restrict)
+
+  @@id([chargeId, participantId])
+  @@index([participantId])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  groupId   String
+  actorName String? // null = action from a device that never claimed a participant
+  action    String // group.create | expense.create | expense.update | expense.delete | payment.create | ...
+  payload   Json // entity snapshot: previous state for update/delete, created state for create
+  createdAt DateTime @default(now())
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, createdAt])
+}
+
+// v1.2: the "bote" is a self-contained communal ledger, "de nadie". It never
+// enters person-to-person settle(). One Kitty per group; parkedExtraCents is
+// the single authoritative ownerless carried surplus (invariant >= 0).
+// v1.3: the Kitty row exists ONLY as the per-group concurrency lock anchor
+// (lockKitty SELECT … FOR UPDATE); it stores no money.
+model Kitty {
+  id      String       @id @default(cuid())
+  groupId String       @unique
+  group   Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  rounds  KittyRound[]
+}
+
+model KittyRound {
+  id             String              @id @default(cuid())
+  kittyId        String
+  groupId        String
+  name           String?
+  carryInCents   Int                 @default(0) // v1.3: user-entered "bote preexistente", frozen at open
+  closeAction    String? // "CERRAR" | "REPARTIR"; null = open
+  payoutSnapshot Json? // [{participantId, amountCents}] frozen at REPARTIR close
+  openedAt       DateTime            @default(now())
+  closedAt       DateTime?
+  kitty          Kitty               @relation(fields: [kittyId], references: [id], onDelete: Cascade)
+  group          Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  contributions  KittyContribution[]
+  spends         KittySpend[]
+
+  @@index([groupId, closedAt])
+  @@index([kittyId])
+}
+
+model KittyContribution {
+  id            String      @id @default(cuid())
+  kittyRoundId  String
+  participantId String
+  amountCents   Int
+  round         KittyRound  @relation(fields: [kittyRoundId], references: [id], onDelete: Cascade)
+  participant   Participant @relation("KittyContributions", fields: [participantId], references: [id], onDelete: Restrict)
+
+  @@index([kittyRoundId])
+  @@index([participantId])
+}
+
+model KittySpend {
+  id           String     @id @default(cuid())
+  kittyRoundId String
+  concept      String
+  amountCents  Int
+  date         DateTime   @default(now())
+  round        KittyRound @relation(fields: [kittyRoundId], references: [id], onDelete: Cascade)
+
+  @@index([kittyRoundId])
+}

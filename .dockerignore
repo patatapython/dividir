@@ -1,0 +1,11 @@
+node_modules
+.next
+.next-e2e
+.git
+test-results
+playwright-report
+src/generated
+docs
+.atl
+# Local env files must never reach an image; production env comes from compose.
+.env*

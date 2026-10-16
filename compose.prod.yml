@@ -1,0 +1,72 @@
+# Production: docker compose -f compose.prod.yml up -d
+#
+# Required environment (from the deploy platform or an --env-file, never committed):
+#   POSTGRES_USER, POSTGRES_PASSWORD — use a URL-safe password (e.g. `openssl rand -hex 32`):
+#   it is interpolated into DATABASE_URL below.
+# Compose refuses to start if either is missing: no silent default credentials.
+#
+# Its own project name keeps its volume and network apart from the dev stack.
+# The app port is never published: the TLS reverse proxy (here Coolify's Traefik,
+# route in deploy/traefik/dividir.yaml) is the sole way in. The app joins the
+# proxy's external network (`coolify`; point it at your own proxy's network); the
+# database stays on the project network, unreachable from the proxy. Services are
+# named `dividir-*` because a service name is also a DNS name on every network the
+# container joins, and the proxy network is shared with other apps: a generic `app`
+# or `db` could resolve to another project's container.
+name: dividir-prod
+
+x-database-url: &database-url
+  DATABASE_URL: postgresql://${POSTGRES_USER:?set POSTGRES_USER}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@dividir-db:5432/dividir
+
+services:
+  dividir-db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: dividir
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      target: build
+    command: npx prisma migrate deploy
+    environment:
+      <<: *database-url
+    depends_on:
+      dividir-db:
+        condition: service_healthy
+
+  dividir-app:
+    build: .
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      <<: *database-url
+      # Only because this proxy trusts no forwarded headers: it drops a client-sent
+      # X-Forwarded-For and writes the real peer, so the createGroup rate limiter may
+      # key on the header's last entry. Behind a proxy that does not, remove it.
+      TRUST_PROXY: "1"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - default
+      - proxy
+
+volumes:
+  dbdata:
+
+networks:
+  proxy:
+    name: coolify
+    external: true

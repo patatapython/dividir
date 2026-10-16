@@ -1,0 +1,71 @@
+# The full gate (`npm run verify`) on every push to main and every pull request, on a
+# clean machine. CI only: it holds no secret and never touches production; deploys
+# stay manual.
+# Actions are pinned to commit SHAs (a tag can be moved; a SHA cannot).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      # The suites pin postgresql://dividir:dividir@localhost:5433 (tests/server/test-db.ts,
+      # e2e/e2e-db.ts), like the dev compose file; `migrate deploy` creates their databases.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: dividir
+          POSTGRES_PASSWORD: dividir
+          POSTGRES_DB: dividir
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U dividir -d dividir"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The Prisma client (src/generated/) and Next's route types are generated, not committed.
+      - run: npx prisma generate
+      - run: npx next typegen
+      - run: npx playwright install --with-deps chromium
+      # Every color pair of docs/design/contrast-pairs.json must pass WCAG AA.
+      - run: npm run contrast
+      - run: npm run verify
+      - if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+  secrets:
+    # No secret may ever reach the repository: gitleaks scans the whole history.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: false

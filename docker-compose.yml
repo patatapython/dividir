@@ -1,0 +1,24 @@
+# Local development only: `docker compose up -d db`.
+# Production lives in compose.prod.yml (required credentials, no published app port).
+services:
+  db:
+    image: postgres:17
+    environment:
+      # Dev credentials are non-secret (also in prisma.config.ts and src/server/db.ts).
+      POSTGRES_USER: dividir
+      POSTGRES_PASSWORD: dividir
+      POSTGRES_DB: dividir
+    ports:
+      # Host 5433: the machine may run its own postgres on 5432
+      - "5433:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  dbdata:
