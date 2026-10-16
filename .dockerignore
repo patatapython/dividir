@@ -9,3 +9,6 @@ docs
 .atl
 # Local env files must never reach an image; production env comes from compose.
 .env*
+# Local-only folders beside the code (a private notebook clone, personal files): never
+# part of an image. Production builds from a `git archive`, which has none of them.
+private
