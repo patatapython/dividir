@@ -60,9 +60,9 @@ describe('deleteGroup', () => {
   });
 
   it('a group name pasted with invisible characters can still be typed to delete it', async () => {
-    const created = await createGroup({ name: '\u2060Quintos  del 86', participantNames: ['Ana', 'Beto'] });
+    const created = await createGroup({ name: '\u2060Pe\u00f1a  del pueblo', participantNames: ['Ana', 'Beto'] });
     if (!created.ok) throw new Error(created.error);
-    expect((await deleteGroup(created.data.token, 'Quintos del 86')).ok).toBe(true);
+    expect((await deleteGroup(created.data.token, 'Pe\u00f1a del pueblo')).ok).toBe(true);
   });
 
   it('unknown token fails with the same generic message (no existence leak)', async () => {

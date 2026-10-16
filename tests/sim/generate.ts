@@ -13,7 +13,7 @@ export interface ItemIn { label?: string; amount: string; splitMode: Mode; share
 export interface PayerIn { participantId: string | null; amount: string }
 export interface ExpenseIn { title: string; date: string; payers: PayerIn[]; items: ItemIn[] }
 
-/** What the quintos spend money on, with a plausible range in euros. */
+/** What a big group spends money on, with a plausible range in euros. */
 const CONCEPTS: { title: string; min: number; max: number; lines?: string[] }[] = [
   { title: 'Cena en el asador', min: 180, max: 900, lines: ['Carne', 'Vino', 'Postres', 'Cafés'] },
   { title: 'Cañas en la plaza', min: 12, max: 95 },

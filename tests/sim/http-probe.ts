@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 const BASE = process.env.SIM_BASE_URL ?? 'http://localhost:3200';
 const OUT = new URL('./.out/', import.meta.url);
 const { groups } = JSON.parse(readFileSync(new URL('manifest.json', OUT), 'utf8')) as { groups: Record<string, string> };
-const g = `/g/${groups.quintada}`;
+const g = `/g/${groups.grande}`;
 
 interface Sample { ttfb: number; total: number; bytes: number; status: number }
 

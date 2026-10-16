@@ -23,8 +23,8 @@ import type { Roster } from './roster';
 import { buildExpense, centsOf, isoDay, MODES, sharesFor, totalOf, type ExpenseIn, type Mode } from './generate';
 import { checkActivity, checkKitty, checkLedger, openRoundBalance } from './invariants';
 
-export const QUINTADA = {
-  name: 'Quintos del 86',
+export const BIG_GROUP = {
+  name: 'La peña del pueblo',
   expenses: 460,
   kittyRounds: 24,
   start: new Date('2026-03-01T00:00:00Z'),
@@ -46,13 +46,13 @@ export async function newGroup(driver: Driver, name: string, participantNames: s
 }
 
 /**
- * The owner's group, lived for ~200 days: founders from the start, late joiners in two
+ * A big group, lived for ~200 days: founders from the start, late joiners in two
  * waves, people who leave and one who comes back, hundreds of expenses in every split
  * mode, refunds, payments, unpaid charges, the Sobrante, and a bote round at most
  * gatherings. Returns the group token.
  */
-export async function seedQuintada(driver: Driver, rng: Rng, roster: Roster): Promise<string> {
-  const token = await newGroup(driver, QUINTADA.name, roster.founders);
+export async function seedBigGroup(driver: Driver, rng: Rng, roster: Roster): Promise<string> {
+  const token = await newGroup(driver, BIG_GROUP.name, roster.founders);
   driver.cover('P1');
   const people: Person[] = (await prisma.participant.findMany({ where: { groupId: token }, orderBy: { createdAt: 'asc' } }))
     .map((p) => ({ id: p.id, name: p.name, archived: false }));
@@ -73,10 +73,10 @@ export async function seedQuintada(driver: Driver, rng: Rng, roster: Roster): Pr
   let declared = 0;
   let applied = 0;
   let kittyRoundsOpened = 0;
-  const kittyPlan = kittyClosePlan(QUINTADA.kittyRounds);
+  const kittyPlan = kittyClosePlan(BIG_GROUP.kittyRounds);
 
-  for (let step = 0; step < QUINTADA.expenses; step++) {
-    const date = isoDay(QUINTADA.start, Math.floor((step * QUINTADA.days) / QUINTADA.expenses));
+  for (let step = 0; step < BIG_GROUP.expenses; step++) {
+    const date = isoDay(BIG_GROUP.start, Math.floor((step * BIG_GROUP.days) / BIG_GROUP.expenses));
     actAsSomeone();
 
     // ---- milestones in the life of the group -------------------------------
@@ -151,7 +151,7 @@ export async function seedQuintada(driver: Driver, rng: Rng, roster: Roster): Pr
     if (step % 10 === 7) await refundSomething(driver, rng, token, expenses, active());
     if (step % 12 === 5) await payPartOfThePlan(driver, rng, token, date);
     if (step % 18 === 3 && chargeIds.length < 40) await unpaidCharges(driver, rng, token, date, active(), chargeIds);
-    if (step % 19 === 9 && kittyRoundsOpened < QUINTADA.kittyRounds) {
+    if (step % 19 === 9 && kittyRoundsOpened < BIG_GROUP.kittyRounds) {
       await kittyGathering(driver, rng, token, active(), archivedIds(), kittyPlan[kittyRoundsOpened], kittyRoundsOpened);
       kittyRoundsOpened++;
     }
@@ -178,7 +178,7 @@ export async function seedQuintada(driver: Driver, rng: Rng, roster: Roster): Pr
   }
 
   // The remaining gatherings, so the bote has all its rounds and one stays open.
-  while (kittyRoundsOpened < QUINTADA.kittyRounds) {
+  while (kittyRoundsOpened < BIG_GROUP.kittyRounds) {
     await kittyGathering(driver, rng, token, active(), archivedIds(), kittyPlan[kittyRoundsOpened], kittyRoundsOpened);
     kittyRoundsOpened++;
   }

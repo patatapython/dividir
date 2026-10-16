@@ -1,8 +1,8 @@
 /**
  * Text people type or paste — names, concepts — cleaned the one way the whole app
  * stores it. A name pasted from a chat often carries invisible characters (WhatsApp
- * puts a word joiner U+2060 before list items); kept, "⁠Joana" would look like
- * "Joana" yet be another person, and a pasted group name could never be typed back.
+ * puts a word joiner U+2060 before list items); kept, "⁠Nerea" would look like
+ * "Nerea" yet be another person, and a pasted group name could never be typed back.
  *
  * Removed: invisible format characters (soft hyphen, zero-width space, direction
  * marks and embeddings, word joiner and invisible operators, byte-order mark). Kept:

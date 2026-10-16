@@ -4,7 +4,7 @@ import { afterAll, describe, it } from 'vitest';
 import { Driver } from './driver';
 import { Rng } from './rng';
 import { loadRoster } from './roster';
-import { seedQuintada } from './scenario-quintada';
+import { seedBigGroup } from './scenario-big-group';
 import { seedEmpty, seedLongNames, seedThree, seedTrip } from './scenario-small';
 import { probeBoundaries } from './scenario-boundaries';
 import { raceDevices } from './scenario-concurrency';
@@ -37,8 +37,8 @@ describe.sequential('simulacro', () => {
     }, null, 2)}\n`);
   });
 
-  it('la quintada: 27+ personas, seis meses de gastos y rondas del bote', async () => {
-    groups.quintada = await driver.time('seed quintada', () => seedQuintada(driver, rng, roster));
+  it('el grupo grande: 27+ personas, seis meses de gastos y rondas del bote', async () => {
+    groups.grande = await driver.time('seed big group', () => seedBigGroup(driver, rng, roster));
   });
 
   it('un viaje de 12 personas que se salda hasta el último céntimo', async () => {
@@ -61,11 +61,11 @@ describe.sequential('simulacro', () => {
     groups.concurrencia = await driver.time('race devices', () => raceDevices(driver, rng, roster.founders.slice(12, 22)));
   });
 
-  it('lo que cuesta leer cada pantalla con el volumen de la quintada', async () => {
-    await measureReads(driver, groups.quintada);
+  it('lo que cuesta leer cada pantalla con el volumen del grupo grande', async () => {
+    await measureReads(driver, groups.grande);
   });
 
   it('valores límite, grupos ajenos y borrar un grupo', async () => {
-    await probeBoundaries(driver, groups.quintada);
+    await probeBoundaries(driver, groups.grande);
   });
 });

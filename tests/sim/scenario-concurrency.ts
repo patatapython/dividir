@@ -10,7 +10,7 @@ import type { Driver } from './driver';
 import type { Rng } from './rng';
 import { buildExpense, type ExpenseIn } from './generate';
 import { checkActivity, checkKitty, checkLedger, openRoundBalance } from './invariants';
-import { newGroup } from './scenario-quintada';
+import { newGroup } from './scenario-big-group';
 
 /**
  * Plan §4 K1–K9: several devices acting on the same rows at the same instant. The

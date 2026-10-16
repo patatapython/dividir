@@ -124,22 +124,22 @@ test('a split row says what is wrong beside it, and save says why it is closed',
 // the left, so the values of one list did not line up. Every row is name | value.
 test('share values line up in one column at 320 px, whatever the name length', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
-  await createGroupAs(page, 'Filas', ['Ana', 'Mati (el de siempre)', 'Bea']);
+  await createGroupAs(page, 'Filas', ['Ana', 'Teodoro (el de siempre)', 'Bea']);
   await page.getByRole('link', { name: 'Añadir gasto' }).click();
   await page.waitForURL(/\/gastos\/nuevo$/);
   await page.getByLabel('Importes exactos').check();
 
   const shares = page.getByRole('group', { name: 'Entre quién se reparte' });
-  const boxes = await Promise.all(['Ana', 'Mati (el de siempre)', 'Bea'].map(async (name) => ({
+  const boxes = await Promise.all(['Ana', 'Teodoro (el de siempre)', 'Bea'].map(async (name) => ({
     value: await shares.getByLabel(`Parte de ${name}`, { exact: true }).boundingBox(),
     check: await shares.getByLabel(`Incluir a ${name}`, { exact: true }).boundingBox(),
   })));
-  const [ana, mati, bea] = boxes;
+  const [ana, teodoro, bea] = boxes;
   // One column of values, right where the short names have it.
-  expect(mati.value!.x).toBe(ana.value!.x);
+  expect(teodoro.value!.x).toBe(ana.value!.x);
   expect(bea.value!.x).toBe(ana.value!.x);
   // And on the row of its own name (not a line below it), whose checkbox keeps its size.
-  expect(mati.value!.y).toBeLessThan(mati.check!.y + mati.check!.height);
-  expect(mati.check!.width).toBe(ana.check!.width);
+  expect(teodoro.value!.y).toBeLessThan(teodoro.check!.y + teodoro.check!.height);
+  expect(teodoro.check!.width).toBe(ana.check!.width);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

@@ -31,7 +31,7 @@ describe('participantNameSchema', () => {
   });
 
   it('stores a pasted name without its invisible characters or doubled spaces', () => {
-    expect(participantNameSchema.parse('\u2060Vanesa\u2060  Po')).toBe('Vanesa Po');
+    expect(participantNameSchema.parse('\u2060Irene\u2060  Lu')).toBe('Irene Lu');
     expect(firstError(participantNameSchema.safeParse('\u2060\u200B'))).toBe('El nombre no puede estar vacío');
   });
 
@@ -78,7 +78,7 @@ describe('createGroupSchema', () => {
   });
 
   it('stores the group name clean, as it will be typed to delete it', () => {
-    expect(createGroupSchema.parse({ name: '\u2060Quintos  del 86 ', participantNames: ['Ana', 'Beto'] }).name).toBe('Quintos del 86');
+    expect(createGroupSchema.parse({ name: '\u2060Pe\u00f1a  del pueblo ', participantNames: ['Ana', 'Beto'] }).name).toBe('Pe\u00f1a del pueblo');
   });
 
   it('rejects a blank group name', () => {

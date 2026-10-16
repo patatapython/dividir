@@ -19,7 +19,7 @@ const ids = JSON.parse(process.env.SIM_IDS ?? '{}') as Record<string, string>;
 
 const screens: [string, string][] = [
   ['landing', '/'],
-  ...(['quintada', 'largos', 'vacio', 'viaje'] as const).flatMap((name): [string, string][] => {
+  ...(['grande', 'largos', 'vacio', 'viaje'] as const).flatMap((name): [string, string][] => {
     const g = `/g/${groups[name]}`;
     return [
       [`${name}-gastos`, g],
@@ -32,7 +32,7 @@ const screens: [string, string][] = [
       [`${name}-sin-pagar`, `${g}/gastos/sin-pagar/nuevo`],
     ];
   }),
-  ['quintada-compartir', `/g/${groups.quintada}/compartir`],
+  ['grande-compartir', `/g/${groups.grande}/compartir`],
   ...Object.entries(ids).map(([label, path]): [string, string] => [label, path]),
 ];
 

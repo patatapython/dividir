@@ -52,9 +52,9 @@ describe('participant actions', () => {
 
   it('stores a name pasted from a chat without its invisible characters', async () => {
     const group = await seedGroup();
-    const result = await addParticipant(group.id, '\u2060Vanesa\u2060 Po');
+    const result = await addParticipant(group.id, '\u2060Irene\u2060 Lu');
     if (!result.ok) throw new Error(result.error);
-    expect((await prisma.participant.findUniqueOrThrow({ where: { id: result.data.id } })).name).toBe('Vanesa Po');
+    expect((await prisma.participant.findUniqueOrThrow({ where: { id: result.data.id } })).name).toBe('Irene Lu');
   });
 
   it('two phones adding the same person with other capitals at once: one wins, never a crash', async () => {

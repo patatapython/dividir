@@ -1,10 +1,10 @@
 /**
  * Pixel-art figures for decoration (owner's choice, session 10), extracted cell by
- * cell from the owner's "Quintos del 86" poster (kept outside the repo, in
- * `dibujos/`): one art pixel = one poster grid cell (7.5 units). Only figures that
- * mean something to any group were taken; the group-specific ones (titles, "40",
- * dates, the tower, the power plant) were not, and the "86" was painted out of the
- * pilgrim's helmet. The hen was left out: it shares its browns with the tower.
+ * cell from a poster of the owner's own (kept outside the repo): one art pixel = one
+ * poster grid cell (7.5 units). Only figures that mean something to any group were
+ * taken; the group-specific ones (titles, numbers, dates, the tower, the power
+ * plant) were not, and a number was painted out of the pilgrim's helmet. The hen
+ * was left out: it shares its browns with the tower.
  *
  * Each figure is a palette plus rows of one character per pixel ('.' = empty), so
  * a pixel can be retouched here by hand. Rendered by `PixelArt` through

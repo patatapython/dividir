@@ -8,7 +8,7 @@ import { typed } from './driver';
 import type { Rng } from './rng';
 import { buildExpense, isoDay, totalOf, type ExpenseIn } from './generate';
 import { checkActivity, checkKitty, checkLedger } from './invariants';
-import { newGroup } from './scenario-quintada';
+import { newGroup } from './scenario-big-group';
 
 /** A 12-person trip on the exact settlement path (≤ 16 balances), paid off to the last cent (Pg5). */
 export async function seedTrip(driver: Driver, rng: Rng, names: string[]): Promise<string> {
